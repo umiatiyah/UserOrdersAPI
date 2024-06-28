@@ -2,6 +2,7 @@ using FluentValidation;
 using FluentValidation.AspNetCore;
 using Microsoft.AspNetCore.Localization;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using System.Reflection;
 using TechnicalTestDOT.Contracts;
 using TechnicalTestDOT.Data;
@@ -14,6 +15,7 @@ builder.Services
     .AddDbContext<DatabaseContext>(options => options
     .UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 builder.Services.AddScoped<IUserRepository, UserRepository>();
+builder.Services.AddScoped<IMemoryCache, MemoryCache>();
 builder.Services.AddScoped<IOrderRepository, OrderRepository>();
 builder.Services.AddFluentValidationAutoValidation();
 builder.Services.AddFluentValidationClientsideAdapters();

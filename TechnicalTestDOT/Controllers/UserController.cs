@@ -1,5 +1,6 @@
 ﻿using Microsoft.AspNetCore.Mvc;
 using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Hosting;
 using TechnicalTestDOT.Contracts;
 using TechnicalTestDOT.Models;
@@ -13,11 +14,11 @@ namespace TechnicalTestDOT.Controllers
     public class UserController : ControllerBase
     {
         private readonly IUserRepository _userRepository;
-        public UserController(IUserRepository userRepository) 
+        public UserController(IUserRepository userRepository)
         {
             _userRepository = userRepository;
         }
-        
+
         [HttpGet]
         public async Task<ActionResult<CommonResponse>> GetUsers()
         {
@@ -36,7 +37,7 @@ namespace TechnicalTestDOT.Controllers
             }
         }
         [HttpGet("{username}")]
-        public async Task<ActionResult<CommonResponse>> GetUsers(string username)
+        public async Task<ActionResult<CommonResponse>> GetUser(string username)
         {
             var data = await _userRepository.GetUser(username);
             if (data.StatusCode == 200)

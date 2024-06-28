@@ -1,4 +1,5 @@
 ﻿using Microsoft.EntityFrameworkCore;
+using Microsoft.Extensions.Caching.Memory;
 using Microsoft.Extensions.Hosting;
 using TechnicalTestDOT.Contracts;
 using TechnicalTestDOT.Data;
@@ -12,25 +13,38 @@ namespace TechnicalTestDOT.Repositories
     {
         private readonly DatabaseContext _context;
         private readonly ILogger<UserRepository> _logger;
-        public UserRepository(DatabaseContext context, ILogger<UserRepository> logger) 
+        private readonly IMemoryCache _cache;
+        public UserRepository(DatabaseContext context, ILogger<UserRepository> logger, IMemoryCache cache) 
         {
             _context = context;
             _logger = logger;
+            _cache = cache;
         }
         public async Task<CommonResponse> GetUsers()
         {
             CommonResponse response = new();
             try
             {
-                var data = await _context.Users.Include(u => u.Orders).ToListAsync();
-                if (data.Count == 0)
+                if (!_cache.TryGetValue("users", out List<UserModel>? users))
+                {
+                    users = await _context.Users.Include(u => u.Orders).ToListAsync();
+                    var cacheEntryOptions = new MemoryCacheEntryOptions();
+                    cacheEntryOptions.SetSlidingExpiration(TimeSpan.FromMinutes(1));
+
+                    _cache.Set("users", users, cacheEntryOptions);
+                }
+                var dataUser = new List<UserModel>();
+                if (users != null)
+                    dataUser = users;
+
+                if (dataUser.Count == 0)
                 {
                     response.StatusCode = 204;
                     response.Message = $"user empty";
                     _logger.LogWarning(response.Message);
                     return response;
                 }
-                response.Data = data;
+                response.Data = dataUser;
                 response.StatusCode = 200;
                 response.Message = "Successfully get users";
                 _logger.LogInformation(response.Message);
@@ -146,7 +160,7 @@ namespace TechnicalTestDOT.Repositories
             try
             {
                 var user = await _context.Users.Include(u => u.Orders)
-                                           .FirstOrDefaultAsync(u => u.Username == username);
+                    .FirstOrDefaultAsync(u => u.Username == username);
 
                 if (user == null)
                 {
