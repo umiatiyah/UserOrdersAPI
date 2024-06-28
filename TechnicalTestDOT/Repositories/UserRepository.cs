@@ -64,10 +64,17 @@ namespace TechnicalTestDOT.Repositories
             CommonResponse response = new();
             try
             {
-                if (UserExists(user.Username, user.Email))
+                if (UserNameExists(user.Username))
                 {
                     response.StatusCode = 400;
-                    response.Message = $"username or email was taken";
+                    response.Message = $"username `{user.Username}` is already taken";
+                    _logger.LogWarning(response.Message);
+                    return response;
+                }
+                if (EmailExists(user.Email))
+                {
+                    response.StatusCode = 400;
+                    response.Message = $"email `{user.Email}` is already taken";
                     _logger.LogWarning(response.Message);
                     return response;
                 }
@@ -102,45 +109,38 @@ namespace TechnicalTestDOT.Repositories
             CommonResponse response = new();
             try
             {
-                if (UserExists(user.Username, user.Email))
+                var userExists = await _context.Users.FindAsync(id);
+                if (userExists == null)
                 {
-                    response.StatusCode = 400;
-                    response.Message = $"username or email was taken";
+                    response.StatusCode = 404;
+                    response.Message = $"User with ID `{id}` not found";
                     _logger.LogWarning(response.Message);
                     return response;
                 }
-                var userModel = new UserModel
+
+                if (!userExists.Username.Equals(user.Username) && UserNameExists(user.Username))
                 {
-                    Id = id,
-                    Fullname = user.Fullname,
-                    Username = user.Username,
-                    Email = user.Email,
-                    Address = user.Address,
-                    UpdatedBy = user.UpdatedBy,
-                    UpdatedOn = DateTime.Now
-                };
-                _context.Users.Attach(userModel);
-                _context.Entry(userModel).State = EntityState.Modified;
-                _context.Entry(userModel).Property(x => x.CreatedBy).IsModified = false;
-                _context.Entry(userModel).Property(x => x.CreatedOn).IsModified = false;
-                try
-                {
-                    await _context.SaveChangesAsync();
+                    response.StatusCode = 400;
+                    response.Message = $"username `{user.Username}` is already taken";
+                    _logger.LogWarning(response.Message);
+                    return response;
                 }
-                catch (DbUpdateConcurrencyException)
+                if (!userExists.Email.Equals(user.Email) && EmailExists(user.Email))
                 {
-                    if (!UserExists(user.Username, user.Email))
-                    {
-                        response.StatusCode = 400;
-                        response.Message = $"user not found";
-                        _logger.LogWarning(response.Message);
-                        return response;
-                    }
-                    else
-                    {
-                        throw;
-                    }
+                    response.StatusCode = 400;
+                    response.Message = $"email `{user.Email}` is already taken";
+                    _logger.LogWarning(response.Message);
+                    return response;
                 }
+                userExists.Fullname = user.Fullname;
+                userExists.Username = user.Username;
+                userExists.Email = user.Email;
+                userExists.Address = user.Address;
+                userExists.UpdatedBy = user.UpdatedBy;
+                userExists.UpdatedOn = DateTime.Now;
+
+                await _context.SaveChangesAsync();
+
                 response.Data = GetUser(user.Username).Result.Data;
                 response.StatusCode = 200;
                 response.Message = "Successfully updated user";
@@ -156,9 +156,13 @@ namespace TechnicalTestDOT.Repositories
             return response;
         }
 
-        private bool UserExists(string username, string email)
+        private bool UserNameExists(string username)
         {
-            return _context.Users.Any(e => e.Username == username || e.Email == email);
+            return _context.Users.Any(e => e.Username == username);
+        }
+        private bool EmailExists(string email)
+        {
+            return _context.Users.Any(e => e.Email == email);
         }
 
         public async Task<CommonResponse> GetUser(string username)
