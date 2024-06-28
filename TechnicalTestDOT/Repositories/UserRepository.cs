@@ -102,6 +102,13 @@ namespace TechnicalTestDOT.Repositories
             CommonResponse response = new();
             try
             {
+                if (UserExists(user.Username, user.Email))
+                {
+                    response.StatusCode = 400;
+                    response.Message = $"username or email was taken";
+                    _logger.LogWarning(response.Message);
+                    return response;
+                }
                 var userModel = new UserModel
                 {
                     Id = id,
