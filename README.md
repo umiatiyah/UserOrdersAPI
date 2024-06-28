@@ -20,7 +20,24 @@ an API User Order with ASP.NET Core
 ```
 git clone https://github.com/umiatiyah/UserOrdersAPI.git
 ```
-2. Migration database:
+
+2. Setup appsettings.json
+```
+{
+  "Logging": {
+    "LogLevel": {
+      "Default": "Information",
+      "Microsoft.AspNetCore": "Warning"
+    }
+  },
+  "AllowedHosts": "*",
+  "ConnectionStrings": {
+    "DefaultConnection": "Server=(local)\\SQLEXPRESS;Database=UserOrderDb;Trusted_Connection=True;MultipleActiveResultSets=true;TrustServerCertificate=True;"
+  }
+}
+```
+
+3. Migration database:
 to migrate the database and tables can use ef migrations or run the query in file querymigration.sql
 #### ef migrations
 ```
